@@ -3,9 +3,12 @@ using IdentityServer4.Core;
 using IdentityServer4.Core.Services;
 using Microsoft.AspNet.Mvc;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using Microsoft.AspNet.Authorization;
+using Microsoft.AspNet.Http.Authentication;
 
 namespace IdSvrHost.UI.Login
 {
@@ -26,6 +29,7 @@ namespace IdSvrHost.UI.Login
         public async Task<IActionResult> Index(string id)
         {
             var vm = new LoginViewModel();
+            vm.ExternalProviders.Add(ExternalProvider.Google);
 
             if (id != null)
             {
@@ -50,9 +54,10 @@ namespace IdSvrHost.UI.Login
                 {
                     var user = _loginService.FindByUsername(model.Username);
 
-                    var name = user.Claims.Where(x => x.Type == JwtClaimTypes.Name).Select(x => x.Value).FirstOrDefault() ?? user.Username;
+                    var name = user.Claims.Where(x => x.Type == JwtClaimTypes.Name)
+                        .Select(x => x.Value).FirstOrDefault() ?? user.Username;
 
-                    var claims = new Claim[] {
+                    var claims = new[] {
                         new Claim(JwtClaimTypes.Subject, user.Subject),
                         new Claim(JwtClaimTypes.Name, name),
                         new Claim(JwtClaimTypes.IdentityProvider, "idsvr"),
@@ -76,6 +81,41 @@ namespace IdSvrHost.UI.Login
 
             var vm = new LoginViewModel(model);
             return View(vm);
+        }
+
+        public IActionResult ExternalLogin(string provider, string signInId)
+        {
+            var props = new AuthenticationProperties
+            {
+                RedirectUri = "/login/callback?signInId="+signInId
+            };
+
+            return new ChallengeResult(provider, props);
+        }
+
+        public async Task<IActionResult> Callback(string signInId)
+        {
+            var external = await HttpContext.Authentication.AuthenticateAsync("External");
+
+            var claims = new List<Claim>
+            {
+                new Claim("sub", "123223"),
+                new Claim("name", external.FindFirst(ClaimTypes.Name).Value),
+                new Claim("role", "Geek")
+            };
+
+            var ci = new ClaimsIdentity(claims, "password", JwtClaimTypes.Name, JwtClaimTypes.Role);
+            var cp = new ClaimsPrincipal(ci);
+
+            await HttpContext.Authentication.SignInAsync(Constants.PrimaryAuthenticationType, cp);
+            await HttpContext.Authentication.SignOutAsync("External");
+
+            if (signInId != null)
+            {
+                return new SignInResult(signInId);
+            }
+
+            return Redirect("~/");
         }
     }
 }

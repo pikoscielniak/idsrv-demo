@@ -16,7 +16,7 @@
                 <div class="panel-body">
 
                     <form asp-action="Login">
-                        <input type="hidden" asp-for="SignInId" />
+                        <input type="hidden" asp-for="SignInId"/>
 
                         <fieldset>
                             <div class="form-group">
@@ -45,6 +45,34 @@
                     </ul>*@
             </div>
         </div>
+        @if (Model.ExternalProviders.Any())
+        {
+            <div class="col-md-6 col-sm-6 external-providers">
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <h3 class="panel-title">External Login</h3>
+                    </div>
+                    <div class="panel-body">
+                        <ul class="list-inline">
+                            @foreach (var externalProvider in Model.ExternalProviders)
+                            {
+                                <li>
+                                    <a class="btn btn-default"
+                                       href="@Url.Action("ExternalLogin", 
+                                            new
+                                            {
+                                                provider = externalProvider.AuthenticationScheme,
+                                                signInId = Model.SignInId
+                                            })">
+                                        @externalProvider.Text
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        }
 
         @*<div class="col-md-6 col-sm-6 external-providers" ng-show="model.externalProviders.length">
                 <div class="panel panel-default">

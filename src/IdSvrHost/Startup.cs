@@ -1,9 +1,12 @@
 ﻿using System.IO;
 using System.Security.Cryptography.X509Certificates;
+using System.Threading.Tasks;
 using IdSvrHost.Configuration;
 using IdSvrHost.Extensions;
+using Microsoft.AspNet.Authentication.OAuth;
 using Microsoft.AspNet.Builder;
 using Microsoft.AspNet.Hosting;
+using Microsoft.AspNet.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -39,7 +42,7 @@ namespace IdSvrHost
 
             var builder = services.AddIdentityServer(options =>
             {
-                options.SigningCertificate = cert;                
+                options.SigningCertificate = cert;                                
             });
 
             builder.AddInMemoryClients(Clients.Get());
@@ -66,7 +69,47 @@ namespace IdSvrHost
             app.UseDeveloperExceptionPage();
             app.UseIISPlatformHandler();
 
-            app.UseIdentityServer();            
+//            app.UseGoogleAuthentication(options =>
+//            {
+//                options.AuthenticationScheme = "Google";
+//                options.SignInScheme = IdentityServer4.Core.Constants.PrimaryAuthenticationType;
+//
+//                options.ClientId = Configuration["GoogleIdentityProvider:ClientId"];
+//                options.ClientSecret = Configuration["GoogleIdentityProvider:ClientSecret"];
+////                options.CallbackPath = new PathString("");
+//            });
+
+            app.UseIdentityServer();
+
+            app.UseCookieAuthentication(options =>
+            {
+                options.AuthenticationScheme = "External";
+            });
+
+            app.UseGoogleAuthentication(options =>
+            {
+                options.AuthenticationScheme = "Google";
+                options.SignInScheme = "External";
+
+                options.ClientId = Configuration["GoogleIdentityProvider:ClientId"];
+                options.ClientSecret = Configuration["GoogleIdentityProvider:ClientSecret"];
+                options.CallbackPath = new PathString("/login/googlecallback");
+                options.Events = new OAuthEvents
+                {
+                    OnCreatingTicket = t =>
+                    {
+                        return Task.FromResult(0);
+                    },
+                    OnRemoteError = e =>
+                    {
+                        return Task.FromResult(0);
+                    },
+                    OnTicketReceived = t =>
+                    {
+                        return Task.FromResult(0);
+                    }
+                };
+            });
 
             app.UseStaticFiles();
             app.UseMvcWithDefaultRoute();
