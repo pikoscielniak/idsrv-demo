@@ -14,10 +14,23 @@ namespace IdSvrHost2
     {
         private readonly IApplicationEnvironment _environment;
 
-        public Startup(IApplicationEnvironment environment)
+        public Startup(IHostingEnvironment env, IApplicationEnvironment environment)
         {
             _environment = environment;
+            var builder = new ConfigurationBuilder()
+            .AddJsonFile("appsettings.json")
+            .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true);
+                
+            if (env.IsDevelopment())
+            {
+                builder.AddUserSecrets();                
+            }
+            
+            builder.AddEnvironmentVariables()
+            Configuration = builder.Build();   
         }
+        
+        public IConfigurationRoot Configuration { get; set; }
 
         public void ConfigureServices(IServiceCollection services)
         {
