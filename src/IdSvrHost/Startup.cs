@@ -1,14 +1,15 @@
-﻿using Microsoft.AspNet.Builder;
-using Microsoft.AspNet.Hosting;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
+﻿using System.IO;
+using System.Security.Cryptography.X509Certificates;
 using IdSvrHost.Configuration;
 using IdSvrHost.Extensions;
+using Microsoft.AspNet.Builder;
+using Microsoft.AspNet.Hosting;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.PlatformAbstractions;
-using System.Security.Cryptography.X509Certificates;
-using System.IO;
 
-namespace IdSvrHost2
+namespace IdSvrHost
 {
     public class Startup
     {
@@ -25,8 +26,8 @@ namespace IdSvrHost2
             {
                 builder.AddUserSecrets();                
             }
-            
-            builder.AddEnvironmentVariables()
+
+            builder.AddEnvironmentVariables();
             Configuration = builder.Build();   
         }
         
@@ -38,24 +39,23 @@ namespace IdSvrHost2
 
             var builder = services.AddIdentityServer(options =>
             {
-                options.SigningCertificate = cert;
+                options.SigningCertificate = cert;                
             });
 
             builder.AddInMemoryClients(Clients.Get());
             builder.AddInMemoryScopes(Scopes.Get());
             builder.AddInMemoryUsers(Users.Get());
 
-            builder.AddCustomGrantValidator<CustomGrantValidator>();
-
+            builder.AddCustomGrantValidator<CustomGrantValidator>();            
 
             // for the UI
             services
                 .AddMvc()
                 .AddRazorOptions(razor =>
                 {
-                    razor.ViewLocationExpanders.Add(new IdSvrHost.UI.CustomViewLocationExpander());
+                    razor.ViewLocationExpanders.Add(new UI.CustomViewLocationExpander());
                 });
-            services.AddTransient<IdSvrHost.UI.Login.LoginService>();
+            services.AddTransient<UI.Login.LoginService>();
         }
 
         public void Configure(IApplicationBuilder app, ILoggerFactory loggerFactory)
@@ -66,7 +66,7 @@ namespace IdSvrHost2
             app.UseDeveloperExceptionPage();
             app.UseIISPlatformHandler();
 
-            app.UseIdentityServer();
+            app.UseIdentityServer();            
 
             app.UseStaticFiles();
             app.UseMvcWithDefaultRoute();
