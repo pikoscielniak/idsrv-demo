@@ -3,11 +3,9 @@ using IdentityServer4.Core;
 using IdentityServer4.Core.Services;
 using Microsoft.AspNet.Mvc;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
-using Microsoft.AspNet.Authorization;
 using Microsoft.AspNet.Http.Authentication;
 
 namespace IdSvrHost.UI.Login
@@ -18,7 +16,7 @@ namespace IdSvrHost.UI.Login
         private readonly SignInInteraction _signInInteraction;
 
         public LoginController(
-            LoginService loginService, 
+            LoginService loginService,
             SignInInteraction signInInteraction)
         {
             _loginService = loginService;
@@ -30,6 +28,8 @@ namespace IdSvrHost.UI.Login
         {
             var vm = new LoginViewModel();
             vm.ExternalProviders.Add(ExternalProvider.Google);
+
+            //var loginProviders = HttpContext.Authentication.GetAuthenticationSchemes().ToList();
 
             if (id != null)
             {
@@ -61,7 +61,7 @@ namespace IdSvrHost.UI.Login
                         new Claim(JwtClaimTypes.Subject, user.Subject),
                         new Claim(JwtClaimTypes.Name, name),
                         new Claim(JwtClaimTypes.IdentityProvider, "idsvr"),
-                        new Claim(JwtClaimTypes.AuthenticationTime, DateTime.UtcNow.ToEpochTime().ToString()),
+                        new Claim(JwtClaimTypes.AuthenticationTime, DateTime.UtcNow.ToEpochTime().ToString())
                     };
                     var ci = new ClaimsIdentity(claims, "password", JwtClaimTypes.Name, JwtClaimTypes.Role);
                     var cp = new ClaimsPrincipal(ci);
@@ -87,7 +87,7 @@ namespace IdSvrHost.UI.Login
         {
             var props = new AuthenticationProperties
             {
-                RedirectUri = "/login/callback?signInId="+signInId
+                RedirectUri = "/login/callback?signInId=" + signInId
             };
 
             return new ChallengeResult(provider, props);
@@ -96,13 +96,16 @@ namespace IdSvrHost.UI.Login
         public async Task<IActionResult> Callback(string signInId)
         {
             var external = await HttpContext.Authentication.AuthenticateAsync("External");
-
-            var claims = new List<Claim>
-            {
-                new Claim("sub", "123223"),
-                new Claim("name", external.FindFirst(ClaimTypes.Name).Value),
-                new Claim("role", "Geek")
-            };
+            //todo create or get local account match by email         
+            //for now alice is hardcoded            
+            var subject = "818727";//todo you get this after you create or get local user
+            var name = "alice";
+            var claims = new[] {
+                        new Claim(JwtClaimTypes.Subject, subject),
+                        new Claim(JwtClaimTypes.Name, name),
+                        new Claim(JwtClaimTypes.IdentityProvider, "idsvr"),
+                        new Claim(JwtClaimTypes.AuthenticationTime, DateTime.UtcNow.ToEpochTime().ToString())
+                    };
 
             var ci = new ClaimsIdentity(claims, "password", JwtClaimTypes.Name, JwtClaimTypes.Role);
             var cp = new ClaimsPrincipal(ci);
@@ -111,7 +114,7 @@ namespace IdSvrHost.UI.Login
             await HttpContext.Authentication.SignOutAsync("External");
 
             if (signInId != null)
-            {
+            {                
                 return new SignInResult(signInId);
             }
 
